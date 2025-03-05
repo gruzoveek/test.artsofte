@@ -35,4 +35,13 @@ class CarRepository extends ServiceEntityRepository
 
         return current($qb->getQuery()->getArrayResult());
     }
+
+    public function getPrices(): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->select('c.price')
+            ->distinct();
+
+        return $qb->getQuery()->getSingleColumnResult();
+    }
 }

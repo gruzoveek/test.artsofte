@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Controller\Api\V1;
 
 use App\Entity\Api\V1\Cars\Car;
+use App\Form\Api\V1\Credit\CreditRequestType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 
@@ -43,9 +43,36 @@ class ShowcaseApiController extends AbstractController
         return $this->json(['name' => 'credit_calculate', 'res' => 'ok']);
     }
 
-    #[Route(path: '/request', name: 'request', methods: ['POST'])]
-    public function request(): JsonResponse
+    #[Route(path: '/request/', name: 'request', methods: ['POST'])]
+    public function request(Request $request, EntityManagerInterface $manager): JsonResponse
     {
-        return $this->json(['name' => 'request', 'res' => 'ok']);
+        $form = $this->createForm(CreditRequestType::class);
+        $data = [
+            'price' => $request->get('price'),
+            'initialPayment' => $request->get('initialPayment'),
+            'loanTerm' => $request->get('loanTerm'),
+        ];
+
+        $form->handleRequest($request);
+        if ($form->isSubmitted()) {
+            if ($form->isValid()) {
+                $creditRequest = $form->getData();
+
+                $manager->persist($creditRequest);
+                $manager->flush();
+
+                //TODO расчет кредита
+                return $this->json(['success' => true]);
+            } else {
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[$error->getOrigin()->getName()] = $error->getMessage();
+                }
+
+                return $this->json(['success' => false, 'errors' => $errors]);
+            }
+        }
+
+        return $this->json(['success' => false, 'message' => 'Необходимо отправить запрос на кредит']);
     }
 }

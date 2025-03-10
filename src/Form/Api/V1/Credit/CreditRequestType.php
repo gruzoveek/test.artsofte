@@ -3,14 +3,13 @@
 namespace App\Form\Api\V1\Credit;
 
 use App\Entity\Api\V1\Cars\Car;
+use App\Entity\Api\V1\Credit\CreditProgram;
 use App\Entity\Api\V1\Credit\CreditRequest;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Event\PostSubmitEvent;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormError;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -24,22 +23,18 @@ class CreditRequestType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('price', NumberType::class)
+            ->add('carId', EntityType::class, [
+                'class' => Car::class,
+                'choice_value' => 'id',
+                'mapped' => false,
+            ])
+            ->add('programId', EntityType::class, [
+                'class' => CreditProgram::class,
+                'choice_value' => 'id',
+                'mapped' => false,
+            ])
             ->add('initialPayment', NumberType::class)
             ->add('loanTerm', NumberType::class);
-
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (PostSubmitEvent $event): void {
-            $form = $event->getForm();
-            $price = $event->getData()?->price();
-
-            if (!empty($price)) {
-                $availablePrices = $this->manager->getRepository(Car::class)->getPrices();
-
-                if (!in_array($price, $availablePrices)) {
-                    $form->get('price')->addError(new FormError('Не найдено автомобилей с такой ценой'));
-                }
-            }
-        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -47,11 +42,12 @@ class CreditRequestType extends AbstractType
         $resolver->setDefaults([
             'data_class' => CreditRequest::class,
             'empty_data' => function (FormInterface $form) {
-                $price = $form->get('price')->getData();
-                $initialPayment = $form->get('price')->getData();
-                $loanTerm = $form->get('price')->getData();
+                $car = $this->manager->getRepository(Car::class)->find($form->get('carId')->getData());
+                $program = $this->manager->getRepository(CreditProgram::class)->find($form->get('programId')->getData());
+                $initialPayment = $form->get('initialPayment')->getData();
+                $loanTerm = $form->get('loanTerm')->getData();
 
-                return new CreditRequest(price: $price, initialPayment: $initialPayment, loanTerm: $loanTerm);
+                return new CreditRequest(car: $car, creditProgram: $program, initialPayment: $initialPayment, loanTerm: $loanTerm);
             },
         ]);
     }

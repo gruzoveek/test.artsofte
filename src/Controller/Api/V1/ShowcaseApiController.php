@@ -3,7 +3,9 @@
 namespace App\Controller\Api\V1;
 
 use App\Entity\Api\V1\Cars\Car;
+use App\Form\Api\V1\Credit\CreditProgramRequestType;
 use App\Form\Api\V1\Credit\CreditRequestType;
+use App\Service\Api\V1\Credit\Credit;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -38,22 +40,55 @@ class ShowcaseApiController extends AbstractController
     }
 
     #[Route(path: '/credit/calculate', name: 'credit_calculate', methods: ['GET'])]
-    public function creditCalculate(): JsonResponse
+    public function creditCalculate(Request $request, EntityManagerInterface $manager, Credit $service): JsonResponse
     {
-        return $this->json(['name' => 'credit_calculate', 'res' => 'ok']);
+        $form = $this->createForm(CreditProgramRequestType::class);
+
+        $data = [
+            'price' => $request->get('price'),
+            'initialPayment' => $request->get('initialPayment'),
+            'loanTerm' => $request->get('loanTerm'),
+        ];
+        $form->submit($data);
+
+        if ($form->isSubmitted()) {
+            if ($form->isValid()) {
+                $creditProgramRequest = $form->getData();
+
+                $manager->persist($creditProgramRequest);
+                $manager->flush();
+
+                $creditResponse = $service->calculateCredit($creditProgramRequest);
+
+                if (null === $creditResponse) {
+                    return $this->json(['success' => false, 'message' => 'Подходящей кредитной программы не найдено']);
+                }
+
+                return $this->json([
+                    'programId' => $creditResponse->id(),
+                    'interestRate' => $creditResponse->interestRate(),
+                    'monthlyPayment' => $service->monthlyPayment($creditProgramRequest, $creditResponse),
+                    'title' => $creditResponse->title(),
+                ]);
+            } else {
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[$error->getOrigin()->getName()] = $error->getMessage();
+                }
+
+                return $this->json(['success' => false, 'errors' => $errors]);
+            }
+        }
+
+        return $this->json(['success' => false, 'message' => 'Неверно переданы параметры']);
     }
 
     #[Route(path: '/request/', name: 'request', methods: ['POST'])]
     public function request(Request $request, EntityManagerInterface $manager): JsonResponse
     {
         $form = $this->createForm(CreditRequestType::class);
-        $data = [
-            'price' => $request->get('price'),
-            'initialPayment' => $request->get('initialPayment'),
-            'loanTerm' => $request->get('loanTerm'),
-        ];
 
-        $form->handleRequest($request);
+        $form->submit($request->getPayload()->all());
         if ($form->isSubmitted()) {
             if ($form->isValid()) {
                 $creditRequest = $form->getData();
@@ -61,7 +96,6 @@ class ShowcaseApiController extends AbstractController
                 $manager->persist($creditRequest);
                 $manager->flush();
 
-                //TODO расчет кредита
                 return $this->json(['success' => true]);
             } else {
                 $errors = [];

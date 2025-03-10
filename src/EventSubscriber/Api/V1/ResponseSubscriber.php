@@ -23,7 +23,7 @@ class ResponseSubscriber implements EventSubscriberInterface
         if (!$event->isMainRequest()) {
             return;
         }
-
+        //
         //        $error = $event->getThrowable();
         //
         //        $response = new JsonResponse([

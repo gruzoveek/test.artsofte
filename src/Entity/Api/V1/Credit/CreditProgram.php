@@ -2,13 +2,14 @@
 
 namespace App\Entity\Api\V1\Credit;
 
+use App\Repository\Api\V1\Credit\CreditProgramRepository;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\GeneratedValue;
 use Doctrine\ORM\Mapping\Id;
 
 
-#[Entity]
+#[Entity(repositoryClass: CreditProgramRepository::class)]
 class CreditProgram
 {
     #[Id]
@@ -34,6 +35,18 @@ class CreditProgram
         $this->interestRate = $interestRate;
         $this->loanTerm = $loanTerm;
         $this->title = $title;
+    }
+
+    public function id(): int
+    {
+        return $this->id;
+    }
+
+    public function setId(int $id): static
+    {
+        $this->id = $id;
+
+        return $this;
     }
 
     public function initialPayment(): float

@@ -7,6 +7,7 @@ use App\Form\Api\V1\Credit\CreditProgramRequestType;
 use App\Form\Api\V1\Credit\CreditRequestType;
 use App\Service\Api\V1\Credit\Credit;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -40,6 +41,9 @@ class ShowcaseApiController extends AbstractController
     }
 
     #[Route(path: '/credit/calculate', name: 'credit_calculate', methods: ['GET'])]
+    #[OA\Parameter(name: 'price', description: 'Цена автомобиля', in: 'query', schema: new OA\Schema(type: 'int'))]
+    #[OA\Parameter(name: 'initialPayment', description: 'Начальный платеж', in: 'query', schema: new OA\Schema(type: 'int'))]
+    #[OA\Parameter(name: 'loanTerm', description: 'Срок кредита', in: 'query', schema: new OA\Schema(type: 'int'))]
     public function creditCalculate(Request $request, EntityManagerInterface $manager, Credit $service): JsonResponse
     {
         $form = $this->createForm(CreditProgramRequestType::class);
@@ -84,6 +88,14 @@ class ShowcaseApiController extends AbstractController
     }
 
     #[Route(path: '/request/', name: 'request', methods: ['POST'])]
+    #[OA\RequestBody(description: 'Объект запроса', content: [
+        new OA\MediaType(mediaType: 'application/json; charset=utf-8', schema: new OA\Schema(properties: [
+            new OA\Property(property: 'carId', description: 'ID автомобиля', type: 'int'),
+            new OA\Property(property: 'programId', description: 'ID кредитной программы', type: 'int'),
+            new OA\Property(property: 'initialPayment', description: 'Начальный платеж', type: 'int'),
+            new OA\Property(property: 'loanTerm', description: 'Срок кредита', type: 'int'),
+        ],)),
+    ],)]
     public function request(Request $request, EntityManagerInterface $manager): JsonResponse
     {
         $form = $this->createForm(CreditRequestType::class);

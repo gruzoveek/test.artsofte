@@ -3,6 +3,7 @@
 namespace App\EventSubscriber\Api\V1;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -23,15 +24,17 @@ class ResponseSubscriber implements EventSubscriberInterface
         if (!$event->isMainRequest()) {
             return;
         }
-        //
-        //        $error = $event->getThrowable();
-        //
-        //        $response = new JsonResponse([
-        //            'success' => false,
-        //            'code' => $error->getStatusCode(),
-        //            'message' => $error->getMessage(),
-        //        ], $error->getStatusCode());
-        //
-        //        $event->setResponse($response);
+
+        $error = $event->getThrowable();
+
+        $code = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : ($error->getCode() ?: 500);
+
+        $response = new JsonResponse([
+            'success' => false,
+            'code' => $code,
+            'message' => $error->getMessage(),
+        ], $code);
+
+        $event->setResponse($response);
     }
 }

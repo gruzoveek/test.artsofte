@@ -11,3 +11,5 @@
 /.idea
 timing.txt
 .env
+.env.dev
+.env.test

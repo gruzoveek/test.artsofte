@@ -2,6 +2,7 @@
 
 namespace App\EventSubscriber\Api\V1;
 
+use InvalidArgumentException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -26,14 +27,21 @@ class ResponseSubscriber implements EventSubscriberInterface
         }
 
         $error = $event->getThrowable();
-
         $code = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : ($error->getCode() ?: 500);
 
-        $response = new JsonResponse([
-            'success' => false,
-            'code' => $code,
-            'message' => $error->getMessage(),
-        ], $code);
+        try {
+            $response = new JsonResponse([
+                'success' => false,
+                'code' => $code,
+                'message' => $error->getMessage(),
+            ], $code);
+        } catch (InvalidArgumentException $e) {
+            $response = new JsonResponse([
+                'success' => false,
+                'code' => $code,
+                'message' => $error->getMessage(),
+            ], 500);
+        }
 
         $event->setResponse($response);
     }

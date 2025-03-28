@@ -7,6 +7,8 @@
 /public/bundles/
 /var/
 /vendor/
+/server/data/
+/server/logs/
 ###< symfony/framework-bundle ###
 /.idea
 timing.txt
